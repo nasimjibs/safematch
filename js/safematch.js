@@ -1,12 +1,36 @@
 // SafeMatch — RAG Pipeline Logic
-// Implements: keyword extraction → candidate retrieval → Claude API ranking → results render
+// Implements: keyword extraction → candidate retrieval → LLM API ranking → results render
 
 let API_KEY = '';
+let PROVIDER = 'anthropic';
 
-// ── API Key Management ────────────────────────────────────────────────────────
+const PROVIDER_CONFIG = {
+  anthropic: {
+    keyPrefix: 'sk-ant-',
+    placeholder: 'sk-ant-api03-...',
+    model: 'claude-sonnet-4-20250514',
+    label: 'Anthropic'
+  },
+  gemini: {
+    keyPrefix: 'AIza',
+    placeholder: 'AIzaSy...',
+    model: 'gemini-2.0-flash',
+    label: 'Gemini'
+  }
+};
+
+// ── Provider / API Key Management ─────────────────────────────────────────────
+function onProviderChange() {
+  PROVIDER = document.getElementById('providerSel').value;
+  document.getElementById('apiKeyInput').placeholder = PROVIDER_CONFIG[PROVIDER].placeholder;
+  document.getElementById('apiStatus').textContent = '';
+  API_KEY = '';
+}
+
 function saveKey() {
   const val = document.getElementById('apiKeyInput').value.trim();
-  if (!val.startsWith('sk-ant-')) {
+  const cfg = PROVIDER_CONFIG[PROVIDER];
+  if (!val.startsWith(cfg.keyPrefix)) {
     document.getElementById('apiStatus').textContent = '✗ Invalid key format';
     document.getElementById('apiStatus').style.color = '#791F1F';
     return;
@@ -69,11 +93,56 @@ function hlBadge(level, label) {
   return `<span class="hl-badge ${cls}"><i class="ti ${icon}" style="font-size:12px"></i> Level ${level}: ${label}</span>`;
 }
 
+// ── API callers ───────────────────────────────────────────────────────────────
+async function callAnthropicAPI(prompt) {
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: PROVIDER_CONFIG.anthropic.model,
+      max_tokens: 1000,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  if (!resp.ok) {
+    const err = await resp.json();
+    throw new Error(err.error?.message || `Anthropic API error ${resp.status}`);
+  }
+  const data = await resp.json();
+  return data.content?.[0]?.text || '';
+}
+
+async function callGeminiAPI(prompt) {
+  const model = PROVIDER_CONFIG.gemini.model;
+  const resp = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: 1000 }
+      })
+    }
+  );
+  if (!resp.ok) {
+    const err = await resp.json();
+    throw new Error(err.error?.message || `Gemini API error ${resp.status}`);
+  }
+  const data = await resp.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
+
 // ── Main analysis pipeline ────────────────────────────────────────────────────
 async function analyze() {
   const desc = document.getElementById('incDesc').value.trim();
   if (!desc) { document.getElementById('incDesc').focus(); return; }
-  if (!API_KEY) { alert('Please enter your Anthropic API key at the top of the page.'); return; }
+  if (!API_KEY) { alert(`Please enter your ${PROVIDER_CONFIG[PROVIDER].label} API key at the top of the page.`); return; }
 
   const btn = document.getElementById('analyzeBtn');
   btn.disabled = true;
@@ -148,28 +217,9 @@ Rules:
 - Prioritise cases where recurred=false — these are proven effective actions
 - recommendation: choose the highest feasible hierarchy level based on available evidence`;
 
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-
-    if (!resp.ok) {
-      const err = await resp.json();
-      throw new Error(err.error?.message || `API error ${resp.status}`);
-    }
-
-    const data = await resp.json();
-    const raw = data.content?.[0]?.text || '';
+    const raw = PROVIDER === 'gemini'
+      ? await callGeminiAPI(prompt)
+      : await callAnthropicAPI(prompt);
     let result;
     try {
       result = JSON.parse(raw.replace(/```json|```/g, '').trim());
