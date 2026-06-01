@@ -129,12 +129,8 @@
 <!-- API Key Bar -->
 <div id="apiBar">
   <i class="ti ti-key" style="font-size:16px;flex-shrink:0"></i>
-  <span>Provider:</span>
-  <select id="providerSel" onchange="onProviderChange()" style="padding:5px 8px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);color:#fff;font-size:13px;cursor:pointer;">
-    <option value="anthropic" style="color:#000;background:#fff">Anthropic (Claude)</option>
-    <option value="gemini" style="color:#000;background:#fff">Google (Gemini)</option>
-  </select>
-  <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off"/>
+  <span>OpenRouter API key:</span>
+  <input type="password" id="apiKeyInput" placeholder="sk-or-v1-..." autocomplete="off"/>
   <button onclick="saveKey()">Save key</button>
   <span id="apiStatus"></span>
 </div>

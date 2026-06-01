@@ -2,35 +2,13 @@
 // Implements: keyword extraction → candidate retrieval → LLM API ranking → results render
 
 let API_KEY = '';
-let PROVIDER = 'anthropic';
 
-const PROVIDER_CONFIG = {
-  anthropic: {
-    keyPrefix: 'sk-ant-',
-    placeholder: 'sk-ant-api03-...',
-    model: 'claude-sonnet-4-20250514',
-    label: 'Anthropic'
-  },
-  gemini: {
-    keyPrefix: 'AIza',
-    placeholder: 'AIzaSy...',
-    model: 'gemini-2.0-flash',
-    label: 'Gemini'
-  }
-};
+const OR_MODEL = 'google/gemini-2.5-flash';
 
-// ── Provider / API Key Management ─────────────────────────────────────────────
-function onProviderChange() {
-  PROVIDER = document.getElementById('providerSel').value;
-  document.getElementById('apiKeyInput').placeholder = PROVIDER_CONFIG[PROVIDER].placeholder;
-  document.getElementById('apiStatus').textContent = '';
-  API_KEY = '';
-}
-
+// ── API Key Management ────────────────────────────────────────────────────────
 function saveKey() {
   const val = document.getElementById('apiKeyInput').value.trim();
-  const cfg = PROVIDER_CONFIG[PROVIDER];
-  if (!val.startsWith(cfg.keyPrefix)) {
+  if (!val.startsWith('sk-or-')) {
     document.getElementById('apiStatus').textContent = '✗ Invalid key format';
     document.getElementById('apiStatus').style.color = '#791F1F';
     return;
@@ -94,55 +72,32 @@ function hlBadge(level, label) {
 }
 
 // ── API callers ───────────────────────────────────────────────────────────────
-async function callAnthropicAPI(prompt) {
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+async function callOpenRouterAPI(prompt) {
+  const resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': API_KEY,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
+      'Authorization': `Bearer ${API_KEY}`
     },
     body: JSON.stringify({
-      model: PROVIDER_CONFIG.anthropic.model,
+      model: OR_MODEL,
       max_tokens: 1000,
       messages: [{ role: 'user', content: prompt }]
     })
   });
   if (!resp.ok) {
     const err = await resp.json();
-    throw new Error(err.error?.message || `Anthropic API error ${resp.status}`);
+    throw new Error(err.error?.message || `OpenRouter API error ${resp.status}`);
   }
   const data = await resp.json();
-  return data.content?.[0]?.text || '';
-}
-
-async function callGeminiAPI(prompt) {
-  const model = PROVIDER_CONFIG.gemini.model;
-  const resp = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 1000 }
-      })
-    }
-  );
-  if (!resp.ok) {
-    const err = await resp.json();
-    throw new Error(err.error?.message || `Gemini API error ${resp.status}`);
-  }
-  const data = await resp.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  return data.choices?.[0]?.message?.content || '';
 }
 
 // ── Main analysis pipeline ────────────────────────────────────────────────────
 async function analyze() {
   const desc = document.getElementById('incDesc').value.trim();
   if (!desc) { document.getElementById('incDesc').focus(); return; }
-  if (!API_KEY) { alert(`Please enter your ${PROVIDER_CONFIG[PROVIDER].label} API key at the top of the page.`); return; }
+  if (!API_KEY) { alert('Please enter your OpenRouter API key at the top of the page.'); return; }
 
   const btn = document.getElementById('analyzeBtn');
   btn.disabled = true;
@@ -217,9 +172,7 @@ Rules:
 - Prioritise cases where recurred=false — these are proven effective actions
 - recommendation: choose the highest feasible hierarchy level based on available evidence`;
 
-    const raw = PROVIDER === 'gemini'
-      ? await callGeminiAPI(prompt)
-      : await callAnthropicAPI(prompt);
+    const raw = await callOpenRouterAPI(prompt);
     let result;
     try {
       result = JSON.parse(raw.replace(/```json|```/g, '').trim());
