@@ -40,9 +40,8 @@ python3 -m http.server 8080
 
 ## First-time setup
 
-1. Get your Anthropic API key from https://console.anthropic.com
-2. Open the app in your browser
-3. Paste your API key in the bar at the top — it starts with `sk-ant-`
+1. Open the app in your browser
+3. Paste your API key in the bar at the top
 4. Click **Save key**
 5. You're ready — try one of the sample incidents
 
