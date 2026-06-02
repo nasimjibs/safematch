@@ -315,6 +315,11 @@ function renderResults(result, candidates) {
           </span>
           <span class="site-tag" style="font-style:italic">${c.similarity_reason || ''}</span>
         </div>
+        <div class="case-actions" style="margin-top:12px">
+          <button class="btn-suggestion btn-suggestion--secondary" onclick="chooseHistoricalCase(${JSON.stringify(c).replace(/"/g, '&quot;')})">
+            <i class="ti ti-check"></i> Choose as action
+          </button>
+        </div>
       </div>`).join('')}
   `;
 
@@ -408,6 +413,49 @@ function chooseSuggestion() {
   const recCard = document.querySelector('.rec-card');
   recCard.style.borderColor = 'var(--green-br)';
   recCard.style.borderWidth = '2px';
+}
+
+// ── Choose historical case — user selects a historical case as their action ───
+function chooseHistoricalCase(caseData) {
+  if (!_currentCtx || !caseData) return;
+  
+  // Update _lastRec with the historical case data
+  _lastRec = {
+    action: caseData.act || '',
+    hierarchy_level: caseData.hierarchy_level || caseData.hl,
+    hierarchy_label: caseData.hierarchy_label || caseData.hlab,
+    reasoning: `Selected based on historical case ${caseData.id} from ${caseData.site}. This action was ${(caseData.recurred === false || caseData.recurred === 'false') ? 'effective (did not recur)' : 'taken but incident recurred'}.`,
+    implementation_steps: [`Implement the same corrective action as case ${caseData.id}`, 'Monitor effectiveness', 'Document results']
+  };
+  
+  // Update the recommendation card
+  const recCard = document.querySelector('.rec-card');
+  if (recCard) {
+    const actionEl = recCard.querySelector('.rec-action');
+    const reasonEl = recCard.querySelector('.rec-reason');
+    const stepsEl = recCard.querySelector('.steps-list');
+    const hlBadgeEl = recCard.querySelector('.hl-badge');
+    
+    if (actionEl) actionEl.textContent = _lastRec.action;
+    if (reasonEl) reasonEl.textContent = _lastRec.reasoning;
+    if (stepsEl) stepsEl.innerHTML = _lastRec.implementation_steps.map(s => `<li>${s}</li>`).join('');
+    if (hlBadgeEl) hlBadgeEl.outerHTML = hlBadge(_lastRec.hierarchy_level, _lastRec.hierarchy_label);
+    
+    // Update buttons to show "Action taken" state
+    const editBtn = document.getElementById('editSuggestionBtn');
+    const chooseBtn = document.getElementById('chooseSuggestionBtn');
+    const actionBtn = document.getElementById('actionTakenBtn');
+    
+    if (editBtn) editBtn.style.display = 'none';
+    if (chooseBtn) chooseBtn.style.display = 'none';
+    if (actionBtn) actionBtn.style.display = 'inline-flex';
+    
+    recCard.style.borderColor = 'var(--green-br)';
+    recCard.style.borderWidth = '2px';
+  }
+  
+  // Scroll to recommendation
+  recCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ── Mark action taken — saves current recommendation into actionLog ────────────
