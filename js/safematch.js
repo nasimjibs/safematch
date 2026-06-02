@@ -5,6 +5,56 @@ let API_KEY = '';
 
 const OR_MODEL = 'google/gemini-2.5-flash';
 
+// ── Action log — seeded from ovako.json, grows as actions are taken ───────────
+let actionLog = [];
+let _currentCtx = null;
+let _lastRec    = null;
+
+const SITE_COMPANY = {
+  'Hofors':       { company_id: 'C-001', company_name: 'Nordstål AB' },
+  'Smedjebacken': { company_id: 'C-002', company_name: 'Bergverk Industries' },
+  'Timmersdala':  { company_id: 'C-003', company_name: 'Scandinavian Metals' },
+  'Boxholm':      { company_id: 'C-004', company_name: 'Irongate Group' },
+  'Hällefors':    { company_id: 'C-005', company_name: 'Nordic Forge AB' },
+};
+
+function normalizeOvakoRecord(r) {
+  const co = SITE_COMPANY[r.site] || { company_id: 'C-000', company_name: 'Ovako AB' };
+  return {
+    id:           r.incident_id,
+    cat:          r.category,
+    desc:         r.description,
+    loc:          r.location,
+    site:         r.site,
+    company_id:   r.company_id   || co.company_id,
+    company_name: r.company_name || co.company_name,
+    act:          r.corrective_action,
+    hl:           r.hierarchy_level,
+    hlab:         r.hierarchy_label,
+    kw:           (r.keywords || '').replace(/,/g, ' '),
+    rec:          r.recurred,
+    _src:         'json'
+  };
+}
+
+function loadActionLog() {
+  if (typeof OVAKO_DATA !== 'undefined') {
+    actionLog = OVAKO_DATA.map(normalizeOvakoRecord);
+  }
+}
+loadActionLog();
+
+// ── Populate dropdowns from DS ────────────────────────────────────────────────
+function initDropdowns() {
+  const locs = [...new Set(DS.map(r => r.loc))].sort();
+  const cats = [...new Set(DS.map(r => r.cat))].sort();
+  const locSel = document.getElementById('locSel');
+  const typSel = document.getElementById('typSel');
+  locs.forEach(l => { const o = document.createElement('option'); o.value = o.textContent = l; locSel.appendChild(o); });
+  cats.forEach(c => { const o = document.createElement('option'); o.value = o.textContent = c; typSel.appendChild(o); });
+}
+initDropdowns();
+
 // ── API Key Management ────────────────────────────────────────────────────────
 function saveKey() {
   const val = document.getElementById('apiKeyInput').value.trim();
@@ -120,11 +170,12 @@ async function analyze() {
     // ── STEP 2: Keyword-based candidate retrieval (simulates vector search) ──
     setStep(2, 'run');
     await sleep(400);
-    const scored = DS
+    const allRecords = [...DS, ...actionLog];
+    const scored = allRecords
       .map(r => ({ ...r, score: scoreRecord(r, tokens) }))
       .sort((a, b) => b.score - a.score || a.hl - b.hl);
     const candidates = scored.slice(0, 15);
-    setStep(2, 'done', `${candidates.length} candidate cases retrieved from ${DS.length} records`);
+    setStep(2, 'done', `${candidates.length} candidate cases retrieved from ${allRecords.length} records`);
 
     // ── STEP 3: Send candidates to Claude for ranking ────────────────────────
     setStep(3, 'run');
@@ -186,6 +237,12 @@ Rules:
     setStep(4, 'run');
     await sleep(300);
     setStep(4, 'done', 'Recommendation ready');
+    _currentCtx = {
+      desc: desc,
+      loc:  document.getElementById('locSel').value,
+      cat:  document.getElementById('typSel').value
+    };
+    _lastRec = result.recommendation;
     renderResults(result, candidates);
 
   } catch (err) {
@@ -223,6 +280,11 @@ function renderResults(result, candidates) {
       <ul class="steps-list">
         ${(rec.implementation_steps || []).map(s => `<li>${s}</li>`).join('')}
       </ul>
+      <div style="margin-top:14px">
+        <button class="btn-action-taken" id="actionTakenBtn" onclick="markActionTaken()">
+          <i class="ti ti-check"></i> Action taken
+        </button>
+      </div>
     </div>
 
     <!-- Similar cases -->
@@ -240,6 +302,7 @@ function renderResults(result, candidates) {
         <p class="case-act"><i class="ti ti-check" style="font-size:13px;margin-right:4px;color:#3B6D11"></i>${c.act || ''}</p>
         <div class="case-meta">
           <span class="site-tag"><i class="ti ti-map-pin" style="font-size:12px"></i> ${c.site || ''}</span>
+          ${c.company_name ? `<span class="site-tag"><i class="ti ti-building-factory-2" style="font-size:12px"></i> ${c.company_name}</span>` : ''}
           <span class="${(c.recurred === false || c.recurred === 'false') ? 'rec-no' : 'rec-yes'}">
             ${(c.recurred === false || c.recurred === 'false') ? 'Did not recur' : 'Recurred after action'}
           </span>
@@ -249,4 +312,30 @@ function renderResults(result, candidates) {
   `;
 
   box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Mark action taken — saves current recommendation into actionLog ────────────
+function markActionTaken() {
+  if (!_currentCtx || !_lastRec) return;
+  const record = {
+    id:   'USER-' + Date.now(),
+    cat:  _currentCtx.cat || 'Unknown',
+    desc: _currentCtx.desc,
+    loc:  _currentCtx.loc || '',
+    site: 'Ovako',
+    act:  _lastRec.action,
+    hl:   _lastRec.hierarchy_level,
+    hlab: _lastRec.hierarchy_label,
+    kw:   tokenize(_currentCtx.desc + ' ' + _lastRec.action).join(' '),
+    rec:  false,
+    _src: 'user'
+  };
+  actionLog.push(record);
+
+  const btn = document.getElementById('actionTakenBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ti ti-circle-check"></i> Action logged';
+    btn.classList.add('btn-action-taken--done');
+  }
 }

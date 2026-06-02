@@ -122,6 +122,12 @@
   /* Hierarchy legend */
   .legend { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1rem; padding: 10px 1.25rem; background: var(--bg); border: 0.5px solid var(--bdr); border-radius: var(--radius-lg); }
   .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--txt2); }
+
+  /* Action taken button */
+  .btn-action-taken { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; font-size: 13px; font-weight: 500; background: transparent; color: var(--green-tx); border: 1px solid var(--green-br); border-radius: var(--radius); cursor: pointer; font-family: inherit; transition: background .15s, color .15s; }
+  .btn-action-taken:hover:not(:disabled) { background: var(--green-bg); }
+  .btn-action-taken:disabled { opacity: .6; cursor: default; }
+  .btn-action-taken--done { background: var(--green-bg) !important; }
 </style>
 </head>
 <body>
@@ -166,19 +172,12 @@
         <label class="lbl">Location / unit</label>
         <select id="locSel">
           <option value="">Any location</option>
-          <option>Ugnshalten</option><option>Processvatten</option>
-          <option>FV – Finverket</option><option>Svalbaddshallen</option>
-          <option>FA – Färdigstållning</option><option>Hall C Valshall PV</option>
-          <option>Underhåll</option>
         </select>
       </div>
       <div class="fg">
         <label class="lbl">Incident type</label>
         <select id="typSel">
           <option value="">Any type</option>
-          <option>Risk observation</option>
-          <option>Near miss</option>
-          <option>Accident</option>
         </select>
       </div>
     </div>
@@ -202,6 +201,7 @@
 </div>
 
 <script src="data/incidents.js"></script>
+<script src="data/ovako.js"></script>
 <script src="js/safematch.js"></script>
 </body>
 </html>
