@@ -294,6 +294,7 @@ function renderResults(result, candidates) {
     return { ...full, ...tc };
   });
 
+  box.innerHTML = `
     <!-- Similar cases -->
     <div class="section-title">
       <i class="ti ti-history" style="font-size:16px;color:var(--txt2)"></i>
@@ -352,15 +353,15 @@ function editSuggestion() {
   
   // Replace action with editable textarea
   const actionText = actionEl.textContent;
-  actionEl.innerHTML = `<textarea id="editAction" style="width:100%;min-height:60px;font-size:14px;font-weight:500;color:#173404;background:rgba(255,255,255,0.8);border:1px solid var(--green-br);border-radius:var(--radius);padding:8px;resize:vertical">${actionText}</textarea>`;
+  actionEl.innerHTML = `<textarea id="editAction" style="width:100%;min-height:60px;font-size:14px;font-weight:500;color:#173404;background:rgba(255,255,255,0.8);border:1px solid #9FE1CB;border-radius:4px;padding:8px;resize:vertical">${actionText}</textarea>`;
   
   // Replace reasoning with editable textarea
   const reasonText = reasonEl.textContent;
-  reasonEl.innerHTML = `<textarea id="editReason" style="width:100%;min-height:80px;font-size:13px;color:#3B6D11;background:rgba(255,255,255,0.8);border:1px solid var(--green-br);border-radius:var(--radius);padding:8px;resize:vertical">${reasonText}</textarea>`;
+  reasonEl.innerHTML = `<textarea id="editReason" style="width:100%;min-height:80px;font-size:13px;color:#3B6D11;background:rgba(255,255,255,0.8);border:1px solid #9FE1CB;border-radius:4px;padding:8px;resize:vertical">${reasonText}</textarea>`;
   
   // Replace steps with editable textarea
   const stepsText = Array.from(stepsEl.querySelectorAll('li')).map(li => li.textContent).join('\n');
-  stepsEl.innerHTML = `<textarea id="editSteps" placeholder="Enter each step on a new line" style="width:100%;min-height:100px;font-size:13px;color:#3B6D11;background:rgba(255,255,255,0.8);border:1px solid var(--green-br);border-radius:var(--radius);padding:8px;resize:vertical">${stepsText}</textarea>`;
+  stepsEl.innerHTML = `<textarea id="editSteps" placeholder="Enter each step on a new line" style="width:100%;min-height:100px;font-size:13px;color:#3B6D11;background:rgba(255,255,255,0.8);border:1px solid #9FE1CB;border-radius:4px;padding:8px;resize:vertical">${stepsText}</textarea>`;
   
   // Update buttons
   const editBtn = document.getElementById('editSuggestionBtn');
@@ -447,7 +448,7 @@ function editHistoricalCase(caseData, caseIndex) {
   const actText = actEl.textContent.replace(/^✓\s*/, '');
   
   // Replace action with editable textarea
-  actEl.innerHTML = `<i class="ti ti-check" style="font-size:13px;margin-right:4px;color:#3B6D11"></i><textarea id="editHistoricalAction${caseIndex}" style="width:calc(100% - 20px);min-height:60px;font-size:13px;color:#3B6D11;background:rgba(255,255,255,0.8);border:1px solid var(--green-br);border-radius:var(--radius);padding:6px;resize:vertical;display:inline-block;vertical-align:top">${actText}</textarea>`;
+  actEl.innerHTML = `<i class="ti ti-check" style="font-size:13px;margin-right:4px;color:#3B6D11"></i><textarea id="editHistoricalAction${caseIndex}" style="width:calc(100% - 20px);min-height:60px;font-size:13px;color:#3B6D11;background:rgba(255,255,255,0.8);border:1px solid #9FE1CB;border-radius:4px;padding:6px;resize:vertical;display:inline-block;vertical-align:top">${actText}</textarea>`;
   
   // Update buttons
   actionsEl.innerHTML = `
