@@ -510,11 +510,11 @@ function saveHistoricalCaseEdit(caseData, caseIndex) {
   
   // Reset buttons
   actionsEl.innerHTML = `
+    <button class="btn-suggestion btn-suggestion--tertiary" onclick="toggleCaseExpand(${caseIndex})">
+      <i class="ti ti-chevron-down" id="expandIcon${caseIndex}"></i> <span id="expandText${caseIndex}">Show steps</span>
+    </button>
     <button class="btn-suggestion" onclick="editHistoricalCase(${JSON.stringify(caseData).replace(/"/g, '&quot;')}, ${caseIndex})">
       <i class="ti ti-edit"></i> Edit case
-    </button>
-    <button class="btn-suggestion btn-suggestion--secondary" onclick="chooseHistoricalCase(${JSON.stringify(caseData).replace(/"/g, '&quot;')})">
-      <i class="ti ti-check"></i> Choose as action
     </button>
   `;
   
@@ -543,11 +543,11 @@ function cancelHistoricalCaseEdit(caseData, caseIndex) {
   
   // Reset buttons
   actionsEl.innerHTML = `
+    <button class="btn-suggestion btn-suggestion--tertiary" onclick="toggleCaseExpand(${caseIndex})">
+      <i class="ti ti-chevron-down" id="expandIcon${caseIndex}"></i> <span id="expandText${caseIndex}">Show steps</span>
+    </button>
     <button class="btn-suggestion" onclick="editHistoricalCase(${JSON.stringify(caseData).replace(/"/g, '&quot;')}, ${caseIndex})">
       <i class="ti ti-edit"></i> Edit case
-    </button>
-    <button class="btn-suggestion btn-suggestion--secondary" onclick="chooseHistoricalCase(${JSON.stringify(caseData).replace(/"/g, '&quot;')})">
-      <i class="ti ti-check"></i> Choose as action
     </button>
   `;
   
