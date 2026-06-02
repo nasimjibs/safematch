@@ -294,34 +294,6 @@ function renderResults(result, candidates) {
     return { ...full, ...tc };
   });
 
-  box.innerHTML = `
-    <!-- Recommendation -->
-    <div class="rec-card">
-      <div class="rec-hdr">
-        <i class="ti ${HL_ICON[rec.hierarchy_level] || 'ti-shield'}" style="font-size:20px;color:#3B6D11"></i>
-        <span class="rec-title">Recommended corrective action — ${hlBadge(rec.hierarchy_level, rec.hierarchy_label)}</span>
-      </div>
-      <p class="rec-action">${rec.action}</p>
-      <p class="rec-reason">${rec.reasoning}</p>
-      ${result.warning ? `<p style="font-size:12px;color:#854F0B;margin-top:8px"><i class="ti ti-alert-triangle"></i> ${result.warning}</p>` : ''}
-      <div class="divider"></div>
-      <div style="font-size:12px;font-weight:500;color:#3B6D11;margin-bottom:6px">Implementation steps</div>
-      <ul class="steps-list">
-        ${(rec.implementation_steps || []).map(s => `<li>${s}</li>`).join('')}
-      </ul>
-      <div class="suggestion-buttons">
-        <button class="btn-suggestion" id="editSuggestionBtn" onclick="editSuggestion()">
-          <i class="ti ti-edit"></i> Edit suggestion
-        </button>
-        <button class="btn-suggestion btn-suggestion--secondary" id="chooseSuggestionBtn" onclick="chooseSuggestion()">
-          <i class="ti ti-check"></i> Choose as action
-        </button>
-        <button class="btn-action-taken" id="actionTakenBtn" onclick="markActionTaken()" style="display:none">
-          <i class="ti ti-check"></i> Action taken
-        </button>
-      </div>
-    </div>
-
     <!-- Similar cases -->
     <div class="section-title">
       <i class="ti ti-history" style="font-size:16px;color:var(--txt2)"></i>
