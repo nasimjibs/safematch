@@ -243,6 +243,7 @@ function renderResults(result, candidates) {
           <span class="${(c.recurred === false || c.recurred === 'false') ? 'rec-no' : 'rec-yes'}">
             ${(c.recurred === false || c.recurred === 'false') ? 'Did not recur' : 'Recurred after action'}
           </span>
+          ${c.est_min && c.est_max ? `<span class="site-tag"><i class="ti ti-clock" style="font-size:12px"></i> Est. time: ${c.est_min}-${c.est_max} days</span>` : ''}
           <span class="site-tag" style="font-style:italic">${c.similarity_reason || ''}</span>
         </div>
       </div>`).join('')}
