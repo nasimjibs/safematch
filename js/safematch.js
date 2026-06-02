@@ -293,7 +293,7 @@ function renderResults(result, candidates) {
       Similar historical cases — ranked by Hierarchy of Controls
     </div>
     ${cases.map((c, i) => `
-      <div class="case-card ${i === 0 ? 'best' : ''}">
+      <div class="case-card ${c.company_name === 'Ovako AB' ? 'ovako' : ''}">
         <div class="case-hdr">
           <span class="case-rank">${i === 0 ? '★ Best match' : '#' + (i + 1) + ' similar case'}</span>
           ${hlBadge(c.hierarchy_level || c.hl, c.hierarchy_label || c.hlab)}
@@ -318,17 +318,19 @@ function renderResults(result, candidates) {
 function markActionTaken() {
   if (!_currentCtx || !_lastRec) return;
   const record = {
-    id:   'USER-' + Date.now(),
-    cat:  _currentCtx.cat || 'Unknown',
-    desc: _currentCtx.desc,
-    loc:  _currentCtx.loc || '',
-    site: 'Ovako',
-    act:  _lastRec.action,
-    hl:   _lastRec.hierarchy_level,
-    hlab: _lastRec.hierarchy_label,
-    kw:   tokenize(_currentCtx.desc + ' ' + _lastRec.action).join(' '),
-    rec:  false,
-    _src: 'user'
+    id:           'USER-' + Date.now(),
+    cat:          _currentCtx.cat || 'Unknown',
+    desc:         _currentCtx.desc,
+    loc:          _currentCtx.loc || '',
+    site:         'Ovako',
+    company_id:   'C-001',
+    company_name: 'Ovako AB',
+    act:          _lastRec.action,
+    hl:           _lastRec.hierarchy_level,
+    hlab:         _lastRec.hierarchy_label,
+    kw:           tokenize(_currentCtx.desc + ' ' + _lastRec.action).join(' '),
+    rec:          false,
+    _src:         'user'
   };
   actionLog.push(record);
 
