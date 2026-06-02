@@ -323,7 +323,7 @@ function renderResults(result, candidates) {
             ${(c.implementation_steps || ['Click "Show steps" to generate AI implementation steps']).map(s => `<li>${s}</li>`).join('')}
           </ul>
           <div style="margin-top:12px">
-            <button class="btn-suggestion btn-suggestion--secondary" onclick="chooseHistoricalCase(${JSON.stringify(c).replace(/"/g, '&quot;')})">
+            <button class="btn-suggestion btn-suggestion--secondary" onclick="chooseHistoricalCase(${JSON.stringify(c).replace(/"/g, '&quot;')}, this)">
               <i class="ti ti-check"></i> Choose as action
             </button>
           </div>
@@ -634,7 +634,7 @@ async function toggleCaseExpand(caseIndex) {
 }
 
 // ── Choose historical case — user selects a historical case as their action ───
-function chooseHistoricalCase(caseData) {
+function chooseHistoricalCase(caseData, buttonElement) {
   if (!_currentCtx || !caseData) return;
   
   // Find and highlight the selected case card
@@ -646,16 +646,16 @@ function chooseHistoricalCase(caseData) {
     card.style.backgroundColor = '';
   });
   
-  // Find the specific case card that was selected
-  caseCards.forEach(card => {
-    const caseId = card.querySelector('.case-inc, .case-act');
-    if (caseId && (card.textContent.includes(caseData.id) || card.textContent.includes(caseData.act))) {
-      // Make the selected case card green
-      card.style.borderColor = '#9FE1CB';
-      card.style.borderWidth = '2px';
-      card.style.backgroundColor = 'rgba(159, 225, 203, 0.1)';
+  // Find the specific case card that contains the clicked button
+  if (buttonElement) {
+    const selectedCard = buttonElement.closest('.case-card');
+    if (selectedCard) {
+      // Make only the selected case card green
+      selectedCard.style.borderColor = '#9FE1CB';
+      selectedCard.style.borderWidth = '2px';
+      selectedCard.style.backgroundColor = 'rgba(159, 225, 203, 0.1)';
     }
-  });
+  }
   
   // Update _lastRec with the historical case data
   _lastRec = {
