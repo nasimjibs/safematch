@@ -634,6 +634,26 @@ async function toggleCaseExpand(caseIndex) {
 function chooseHistoricalCase(caseData) {
   if (!_currentCtx || !caseData) return;
   
+  // Find and highlight the selected case card
+  const caseCards = document.querySelectorAll('.case-card');
+  caseCards.forEach(card => {
+    // Reset all cards to default state
+    card.style.borderColor = '';
+    card.style.borderWidth = '';
+    card.style.backgroundColor = '';
+  });
+  
+  // Find the specific case card that was selected
+  caseCards.forEach(card => {
+    const caseId = card.querySelector('.case-inc, .case-act');
+    if (caseId && (card.textContent.includes(caseData.id) || card.textContent.includes(caseData.act))) {
+      // Make the selected case card green
+      card.style.borderColor = '#9FE1CB';
+      card.style.borderWidth = '2px';
+      card.style.backgroundColor = 'rgba(159, 225, 203, 0.1)';
+    }
+  });
+  
   // Update _lastRec with the historical case data
   _lastRec = {
     action: caseData.act || '',
