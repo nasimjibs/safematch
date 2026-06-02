@@ -316,6 +316,9 @@ function renderResults(result, candidates) {
           <span class="site-tag" style="font-style:italic">${c.similarity_reason || ''}</span>
         </div>
         <div class="case-actions" style="margin-top:12px">
+          <button class="btn-suggestion" onclick="editHistoricalCase(${JSON.stringify(c).replace(/"/g, '&quot;')}, ${i})">
+            <i class="ti ti-edit"></i> Edit case
+          </button>
           <button class="btn-suggestion btn-suggestion--secondary" onclick="chooseHistoricalCase(${JSON.stringify(c).replace(/"/g, '&quot;')})">
             <i class="ti ti-check"></i> Choose as action
           </button>
@@ -413,6 +416,133 @@ function chooseSuggestion() {
   const recCard = document.querySelector('.rec-card');
   recCard.style.borderColor = 'var(--green-br)';
   recCard.style.borderWidth = '2px';
+}
+
+// ── Edit historical case — allows user to modify a historical case ────────────
+function editHistoricalCase(caseData, caseIndex) {
+  if (!caseData) return;
+  
+  const caseCards = document.querySelectorAll('.case-card');
+  const caseCard = caseCards[caseIndex];
+  if (!caseCard) return;
+  
+  const actEl = caseCard.querySelector('.case-act');
+  const actionsEl = caseCard.querySelector('.case-actions');
+  
+  if (!actEl || caseCard.dataset.editing === 'true') return;
+  
+  // Mark as editing
+  caseCard.dataset.editing = 'true';
+  
+  // Get current action text (remove the icon)
+  const actText = actEl.textContent.replace(/^✓\s*/, '');
+  
+  // Replace action with editable textarea
+  actEl.innerHTML = `<i class="ti ti-check" style="font-size:13px;margin-right:4px;color:#3B6D11"></i><textarea id="editHistoricalAction${caseIndex}" style="width:calc(100% - 20px);min-height:60px;font-size:13px;color:#3B6D11;background:rgba(255,255,255,0.8);border:1px solid var(--green-br);border-radius:var(--radius);padding:6px;resize:vertical;display:inline-block;vertical-align:top">${actText}</textarea>`;
+  
+  // Update buttons
+  actionsEl.innerHTML = `
+    <button class="btn-suggestion" onclick="saveHistoricalCaseEdit(${JSON.stringify(caseData).replace(/"/g, '&quot;')}, ${caseIndex})">
+      <i class="ti ti-device-floppy"></i> Save changes
+    </button>
+    <button class="btn-suggestion btn-suggestion--secondary" onclick="cancelHistoricalCaseEdit(${JSON.stringify(caseData).replace(/"/g, '&quot;')}, ${caseIndex})">
+      <i class="ti ti-x"></i> Cancel
+    </button>
+  `;
+}
+
+// ── Save historical case edit — creates new record while keeping original ─────
+function saveHistoricalCaseEdit(caseData, caseIndex) {
+  const caseCards = document.querySelectorAll('.case-card');
+  const caseCard = caseCards[caseIndex];
+  if (!caseCard) return;
+  
+  const textarea = document.getElementById(`editHistoricalAction${caseIndex}`);
+  const actEl = caseCard.querySelector('.case-act');
+  const actionsEl = caseCard.querySelector('.case-actions');
+  
+  if (!textarea) return;
+  
+  const newActionText = textarea.value.trim();
+  if (!newActionText) {
+    alert('Action cannot be empty');
+    return;
+  }
+  
+  // Check if an edited version already exists for this original case
+  const originalId = caseData.id.replace(/-EDIT-\d+$/, ''); // Remove any existing edit suffix
+  const existingEditIndex = actionLog.findIndex(r => 
+    r.id.startsWith(originalId + '-EDIT-') && r._src === 'user_edit'
+  );
+  
+  if (existingEditIndex !== -1) {
+    // Update existing edited record
+    actionLog[existingEditIndex].act = newActionText;
+    caseData.act = newActionText;
+  } else {
+    // Create a new record with the edited action (keep original unchanged)
+    const newRecord = {
+      ...caseData,
+      id: originalId + '-EDIT-' + Date.now(),
+      act: newActionText,
+      _src: 'user_edit'
+    };
+    
+    // Add the new record to actionLog
+    actionLog.push(newRecord);
+    
+    // Update the case data (local copy for display)
+    caseData.act = newActionText;
+  }
+  
+  // Update the display
+  actEl.innerHTML = `<i class="ti ti-check" style="font-size:13px;margin-right:4px;color:#3B6D11"></i>${newActionText}`;
+  
+  // Reset buttons
+  actionsEl.innerHTML = `
+    <button class="btn-suggestion" onclick="editHistoricalCase(${JSON.stringify(caseData).replace(/"/g, '&quot;')}, ${caseIndex})">
+      <i class="ti ti-edit"></i> Edit case
+    </button>
+    <button class="btn-suggestion btn-suggestion--secondary" onclick="chooseHistoricalCase(${JSON.stringify(caseData).replace(/"/g, '&quot;')})">
+      <i class="ti ti-check"></i> Choose as action
+    </button>
+  `;
+  
+  // Remove editing flag
+  delete caseCard.dataset.editing;
+  
+  // Show confirmation that new version was created
+  const confirmMsg = document.createElement('div');
+  confirmMsg.style.cssText = 'position:fixed;top:20px;right:20px;background:#9FE1CB;color:#173404;padding:8px 12px;border-radius:4px;font-size:12px;z-index:1000;box-shadow:0 2px 8px rgba(0,0,0,0.1)';
+  confirmMsg.innerHTML = '<i class="ti ti-check"></i> New version created (original preserved)';
+  document.body.appendChild(confirmMsg);
+  setTimeout(() => confirmMsg.remove(), 3000);
+}
+
+// ── Cancel historical case edit — reverts changes and restores original ───────
+function cancelHistoricalCaseEdit(caseData, caseIndex) {
+  const caseCards = document.querySelectorAll('.case-card');
+  const caseCard = caseCards[caseIndex];
+  if (!caseCard) return;
+  
+  const actEl = caseCard.querySelector('.case-act');
+  const actionsEl = caseCard.querySelector('.case-actions');
+  
+  // Restore original action text
+  actEl.innerHTML = `<i class="ti ti-check" style="font-size:13px;margin-right:4px;color:#3B6D11"></i>${caseData.act || ''}`;
+  
+  // Reset buttons
+  actionsEl.innerHTML = `
+    <button class="btn-suggestion" onclick="editHistoricalCase(${JSON.stringify(caseData).replace(/"/g, '&quot;')}, ${caseIndex})">
+      <i class="ti ti-edit"></i> Edit case
+    </button>
+    <button class="btn-suggestion btn-suggestion--secondary" onclick="chooseHistoricalCase(${JSON.stringify(caseData).replace(/"/g, '&quot;')})">
+      <i class="ti ti-check"></i> Choose as action
+    </button>
+  `;
+  
+  // Remove editing flag
+  delete caseCard.dataset.editing;
 }
 
 // ── Choose historical case — user selects a historical case as their action ───
