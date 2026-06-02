@@ -321,6 +321,11 @@ function renderResults(result, candidates) {
           <ul class="steps-list" style="font-size:12px;color:#3B6D11">
             ${(c.implementation_steps || ['Click "Show steps" to generate AI implementation steps']).map(s => `<li>${s}</li>`).join('')}
           </ul>
+          <div style="margin-top:12px">
+            <button class="btn-suggestion btn-suggestion--secondary" onclick="chooseHistoricalCase(${JSON.stringify(c).replace(/"/g, '&quot;')})">
+              <i class="ti ti-check"></i> Choose as action
+            </button>
+          </div>
         </div>
         <div class="case-actions" style="margin-top:12px">
           <button class="btn-suggestion btn-suggestion--tertiary" onclick="toggleCaseExpand(${i})">
@@ -328,9 +333,6 @@ function renderResults(result, candidates) {
           </button>
           <button class="btn-suggestion" onclick="editHistoricalCase(${JSON.stringify(c).replace(/"/g, '&quot;')}, ${i})">
             <i class="ti ti-edit"></i> Edit case
-          </button>
-          <button class="btn-suggestion btn-suggestion--secondary" onclick="chooseHistoricalCase(${JSON.stringify(c).replace(/"/g, '&quot;')})">
-            <i class="ti ti-check"></i> Choose as action
           </button>
         </div>
       </div>`).join('')}
