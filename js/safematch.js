@@ -9,6 +9,7 @@ const OR_MODEL = 'google/gemini-2.5-flash';
 let actionLog = [];
 let _currentCtx = null;
 let _lastRec    = null;
+let _editMode   = false;
 
 const SITE_COMPANY = {
   'Hofors':       { company_id: 'C-001', company_name: 'Nordstål AB' },
@@ -280,8 +281,14 @@ function renderResults(result, candidates) {
       <ul class="steps-list">
         ${(rec.implementation_steps || []).map(s => `<li>${s}</li>`).join('')}
       </ul>
-      <div style="margin-top:14px">
-        <button class="btn-action-taken" id="actionTakenBtn" onclick="markActionTaken()">
+      <div class="suggestion-buttons">
+        <button class="btn-suggestion" id="editSuggestionBtn" onclick="editSuggestion()">
+          <i class="ti ti-edit"></i> Edit suggestion
+        </button>
+        <button class="btn-suggestion btn-suggestion--secondary" id="chooseSuggestionBtn" onclick="chooseSuggestion()">
+          <i class="ti ti-check"></i> Choose as action
+        </button>
+        <button class="btn-action-taken" id="actionTakenBtn" onclick="markActionTaken()" style="display:none">
           <i class="ti ti-check"></i> Action taken
         </button>
       </div>
@@ -312,6 +319,95 @@ function renderResults(result, candidates) {
   `;
 
   box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Edit suggestion — allows user to modify the recommendation ─────────────────
+function editSuggestion() {
+  if (!_lastRec) return;
+  
+  const actionEl = document.querySelector('.rec-action');
+  const reasonEl = document.querySelector('.rec-reason');
+  const stepsEl = document.querySelector('.steps-list');
+  
+  if (_editMode) return; // Already in edit mode
+  
+  _editMode = true;
+  
+  // Replace action with editable textarea
+  const actionText = actionEl.textContent;
+  actionEl.innerHTML = `<textarea id="editAction" style="width:100%;min-height:60px;font-size:14px;font-weight:500;color:#173404;background:rgba(255,255,255,0.8);border:1px solid var(--green-br);border-radius:var(--radius);padding:8px;resize:vertical">${actionText}</textarea>`;
+  
+  // Replace reasoning with editable textarea
+  const reasonText = reasonEl.textContent;
+  reasonEl.innerHTML = `<textarea id="editReason" style="width:100%;min-height:80px;font-size:13px;color:#3B6D11;background:rgba(255,255,255,0.8);border:1px solid var(--green-br);border-radius:var(--radius);padding:8px;resize:vertical">${reasonText}</textarea>`;
+  
+  // Replace steps with editable textarea
+  const stepsText = Array.from(stepsEl.querySelectorAll('li')).map(li => li.textContent).join('\n');
+  stepsEl.innerHTML = `<textarea id="editSteps" placeholder="Enter each step on a new line" style="width:100%;min-height:100px;font-size:13px;color:#3B6D11;background:rgba(255,255,255,0.8);border:1px solid var(--green-br);border-radius:var(--radius);padding:8px;resize:vertical">${stepsText}</textarea>`;
+  
+  // Update buttons
+  const editBtn = document.getElementById('editSuggestionBtn');
+  const chooseBtn = document.getElementById('chooseSuggestionBtn');
+  
+  editBtn.innerHTML = '<i class="ti ti-device-floppy"></i> Save changes';
+  editBtn.onclick = saveSuggestionEdit;
+  chooseBtn.style.display = 'none';
+}
+
+// ── Save suggestion edit — updates the recommendation with user changes ────────
+function saveSuggestionEdit() {
+  const actionText = document.getElementById('editAction').value.trim();
+  const reasonText = document.getElementById('editReason').value.trim();
+  const stepsText = document.getElementById('editSteps').value.trim();
+  
+  if (!actionText) {
+    alert('Action cannot be empty');
+    return;
+  }
+  
+  // Update the recommendation object
+  _lastRec.action = actionText;
+  _lastRec.reasoning = reasonText;
+  _lastRec.implementation_steps = stepsText.split('\n').filter(s => s.trim()).map(s => s.trim());
+  
+  // Update the display
+  const actionEl = document.querySelector('.rec-action');
+  const reasonEl = document.querySelector('.rec-reason');
+  const stepsEl = document.querySelector('.steps-list');
+  
+  actionEl.innerHTML = actionText;
+  reasonEl.innerHTML = reasonText;
+  stepsEl.innerHTML = _lastRec.implementation_steps.map(s => `<li>${s}</li>`).join('');
+  
+  // Reset edit mode
+  _editMode = false;
+  
+  // Update buttons
+  const editBtn = document.getElementById('editSuggestionBtn');
+  const chooseBtn = document.getElementById('chooseSuggestionBtn');
+  
+  editBtn.innerHTML = '<i class="ti ti-edit"></i> Edit suggestion';
+  editBtn.onclick = editSuggestion;
+  chooseBtn.style.display = 'inline-flex';
+}
+
+// ── Choose suggestion — user accepts the recommendation as their action ────────
+function chooseSuggestion() {
+  if (!_lastRec) return;
+  
+  const editBtn = document.getElementById('editSuggestionBtn');
+  const chooseBtn = document.getElementById('chooseSuggestionBtn');
+  const actionBtn = document.getElementById('actionTakenBtn');
+  
+  // Hide suggestion buttons and show action taken button
+  editBtn.style.display = 'none';
+  chooseBtn.style.display = 'none';
+  actionBtn.style.display = 'inline-flex';
+  
+  // Add visual feedback
+  const recCard = document.querySelector('.rec-card');
+  recCard.style.borderColor = 'var(--green-br)';
+  recCard.style.borderWidth = '2px';
 }
 
 // ── Mark action taken — saves current recommendation into actionLog ────────────
