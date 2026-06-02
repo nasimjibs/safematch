@@ -314,6 +314,7 @@ function renderResults(result, candidates) {
           <span class="${(c.recurred === false || c.recurred === 'false') ? 'rec-no' : 'rec-yes'}">
             ${(c.recurred === false || c.recurred === 'false') ? 'Did not recur' : 'Recurred after action'}
           </span>
+          ${c.est_min && c.est_max ? `<span class="site-tag"><i class="ti ti-clock" style="font-size:12px"></i> Est. time: ${c.est_min}-${c.est_max} days</span>` : ''}
           <span class="site-tag" style="font-style:italic">${c.similarity_reason || ''}</span>
         </div>
         <div class="case-expand" id="caseExpand${i}" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(59,109,17,0.1)">
