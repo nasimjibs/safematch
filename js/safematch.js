@@ -144,6 +144,34 @@ async function callOpenRouterAPI(prompt) {
   return data.choices?.[0]?.message?.content || '';
 }
 
+// ── Generate AI implementation steps for historical cases ─────────────────────
+async function generateImplementationSteps(caseData, currentIncident) {
+  if (!API_KEY) {
+    return ['Review incident details', 'Implement corrective action', 'Monitor effectiveness', 'Document results'];
+  }
+
+  const prompt = `You are a workplace safety expert. Generate specific implementation steps for this corrective action:
+
+CURRENT INCIDENT: "${currentIncident}"
+HISTORICAL CORRECTIVE ACTION: "${caseData.act}"
+HIERARCHY LEVEL: ${caseData.hierarchy_level || caseData.hl} (${caseData.hierarchy_label || caseData.hlab})
+SITE: ${caseData.site}
+EFFECTIVENESS: ${(caseData.recurred === false || caseData.recurred === 'false') ? 'Effective - incident did not recur' : 'Incident recurred after this action'}
+
+Generate 4-6 specific, actionable implementation steps for this corrective action. Focus on practical steps that a manager could follow to implement this action for the current incident.
+
+Return ONLY a JSON array of strings (no markdown, no preamble):
+["step 1", "step 2", "step 3", "step 4"]`;
+
+  try {
+    const raw = await callOpenRouterAPI(prompt);
+    const steps = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    return Array.isArray(steps) ? steps : ['Review incident details', 'Implement corrective action', 'Monitor effectiveness', 'Document results'];
+  } catch (e) {
+    return ['Review incident details', 'Implement corrective action', 'Monitor effectiveness', 'Document results'];
+  }
+}
+
 // ── Main analysis pipeline ────────────────────────────────────────────────────
 async function analyze() {
   const desc = document.getElementById('incDesc').value.trim();
@@ -318,7 +346,7 @@ function renderResults(result, candidates) {
         <div class="case-expand" id="caseExpand${i}" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(59,109,17,0.1)">
           <div style="font-size:12px;font-weight:500;color:#3B6D11;margin-bottom:6px">Implementation steps</div>
           <ul class="steps-list" style="font-size:12px;color:#3B6D11">
-            ${(c.implementation_steps || ['Review incident details', 'Implement corrective action', 'Monitor effectiveness', 'Document results']).map(s => `<li>${s}</li>`).join('')}
+            ${(c.implementation_steps || ['Click "Show steps" to generate AI implementation steps']).map(s => `<li>${s}</li>`).join('')}
           </ul>
         </div>
         <div class="case-actions" style="margin-top:12px">
@@ -555,7 +583,7 @@ function cancelHistoricalCaseEdit(caseData, caseIndex) {
 }
 
 // ── Toggle case expand — shows/hides implementation steps for historical cases ─
-function toggleCaseExpand(caseIndex) {
+async function toggleCaseExpand(caseIndex) {
   const expandDiv = document.getElementById(`caseExpand${caseIndex}`);
   const expandIcon = document.getElementById(`expandIcon${caseIndex}`);
   const expandText = document.getElementById(`expandText${caseIndex}`);
@@ -570,10 +598,62 @@ function toggleCaseExpand(caseIndex) {
     expandIcon.className = 'ti ti-chevron-down';
     expandText.textContent = 'Show steps';
   } else {
-    // Expand
+    // Expand and generate AI steps
     expandDiv.style.display = 'block';
     expandIcon.className = 'ti ti-chevron-up';
     expandText.textContent = 'Hide steps';
+    
+    // Check if we already have AI-generated steps
+    const stepsList = expandDiv.querySelector('.steps-list');
+    if (stepsList && !stepsList.dataset.aiGenerated) {
+      // Show loading state
+      stepsList.innerHTML = '<li style="color:#666;font-style:italic;"><div class="spin" style="display:inline-block;width:12px;height:12px;margin-right:8px;border-top-color:#666"></div>Generating AI implementation steps...</li>';
+      
+      try {
+        // Get case data from the case card
+        const caseCards = document.querySelectorAll('.case-card');
+        const caseCard = caseCards[caseIndex];
+        const caseDesc = caseCard.querySelector('.case-inc').textContent.replace(/^⚠\s*/, '');
+        const caseAct = caseCard.querySelector('.case-act').textContent.replace(/^✓\s*/, '');
+        const hlBadge = caseCard.querySelector('.hl-badge');
+        const hlLevel = hlBadge ? parseInt(hlBadge.textContent.match(/Level (\d+)/)?.[1]) || 4 : 4;
+        const hlLabel = hlBadge ? hlBadge.textContent.split(': ')[1] || 'Administrative' : 'Administrative';
+        const site = caseCard.querySelector('.site-tag').textContent.replace(/📍\s*/, '');
+        const recurred = caseCard.querySelector('.rec-no, .rec-yes').textContent.includes('Did not recur') ? false : true;
+        
+        const caseData = {
+          desc: caseDesc,
+          act: caseAct,
+          hierarchy_level: hlLevel,
+          hierarchy_label: hlLabel,
+          site: site,
+          recurred: recurred
+        };
+        
+        // Generate AI implementation steps
+        const steps = await generateImplementationSteps(caseData, _currentCtx?.desc || '');
+        
+        // Update the steps list with AI-generated steps
+        stepsList.innerHTML = steps.map(s => `<li>${s}</li>`).join('');
+        stepsList.dataset.aiGenerated = 'true';
+        
+        // Update the header to show AI-generated
+        const stepsHeader = expandDiv.querySelector('div[style*="font-weight:500"]');
+        if (stepsHeader) {
+          stepsHeader.innerHTML = 'Implementation steps <span style="color:#666;font-weight:normal">(AI-generated)</span>';
+        }
+        
+      } catch (error) {
+        // Show error and fallback to default steps
+        stepsList.innerHTML = [
+          'Review incident details',
+          'Implement corrective action', 
+          'Monitor effectiveness',
+          'Document results'
+        ].map(s => `<li>${s}</li>`).join('');
+        stepsList.dataset.aiGenerated = 'true';
+      }
+    }
   }
 }
 
