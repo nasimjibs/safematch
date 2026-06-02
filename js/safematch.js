@@ -315,7 +315,16 @@ function renderResults(result, candidates) {
           </span>
           <span class="site-tag" style="font-style:italic">${c.similarity_reason || ''}</span>
         </div>
+        <div class="case-expand" id="caseExpand${i}" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(59,109,17,0.1)">
+          <div style="font-size:12px;font-weight:500;color:#3B6D11;margin-bottom:6px">Implementation steps</div>
+          <ul class="steps-list" style="font-size:12px;color:#3B6D11">
+            ${(c.implementation_steps || ['Review incident details', 'Implement corrective action', 'Monitor effectiveness', 'Document results']).map(s => `<li>${s}</li>`).join('')}
+          </ul>
+        </div>
         <div class="case-actions" style="margin-top:12px">
+          <button class="btn-suggestion btn-suggestion--tertiary" onclick="toggleCaseExpand(${i})">
+            <i class="ti ti-chevron-down" id="expandIcon${i}"></i> <span id="expandText${i}">Show steps</span>
+          </button>
           <button class="btn-suggestion" onclick="editHistoricalCase(${JSON.stringify(c).replace(/"/g, '&quot;')}, ${i})">
             <i class="ti ti-edit"></i> Edit case
           </button>
@@ -543,6 +552,29 @@ function cancelHistoricalCaseEdit(caseData, caseIndex) {
   
   // Remove editing flag
   delete caseCard.dataset.editing;
+}
+
+// ── Toggle case expand — shows/hides implementation steps for historical cases ─
+function toggleCaseExpand(caseIndex) {
+  const expandDiv = document.getElementById(`caseExpand${caseIndex}`);
+  const expandIcon = document.getElementById(`expandIcon${caseIndex}`);
+  const expandText = document.getElementById(`expandText${caseIndex}`);
+  
+  if (!expandDiv || !expandIcon || !expandText) return;
+  
+  const isExpanded = expandDiv.style.display !== 'none';
+  
+  if (isExpanded) {
+    // Collapse
+    expandDiv.style.display = 'none';
+    expandIcon.className = 'ti ti-chevron-down';
+    expandText.textContent = 'Show steps';
+  } else {
+    // Expand
+    expandDiv.style.display = 'block';
+    expandIcon.className = 'ti ti-chevron-up';
+    expandText.textContent = 'Hide steps';
+  }
 }
 
 // ── Choose historical case — user selects a historical case as their action ───
