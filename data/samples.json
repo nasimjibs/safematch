@@ -1,0 +1,32 @@
+[
+  {
+    "t": "Missing guardrail on platform",
+    "d": "Worker noticed the guardrail on the elevated walkway near the rolling area is missing. Risk of fall from approximately 2 meters height.",
+    "l": "Ugnshalten",
+    "ty": "Risk observation"
+  },
+  {
+    "t": "Fire risk near furnace",
+    "d": "Oil leak found near the furnace. Hot surface nearby — risk of ignition and fire in the production area during operation.",
+    "l": "Ugnshalten",
+    "ty": "Near miss"
+  },
+  {
+    "t": "Conveyor started unexpectedly",
+    "d": "Maintenance technician was performing cleaning inside the conveyor system when it started unexpectedly. No injuries but a very serious near miss.",
+    "l": "FV – Finverket",
+    "ty": "Near miss"
+  },
+  {
+    "t": "Workers without helmet",
+    "d": "During morning inspection, workers observed operating in the production area without safety helmets in a mandatory hard hat zone.",
+    "l": "Processvatten",
+    "ty": "Risk observation"
+  },
+  {
+    "t": "Back pain from manual lifting",
+    "d": "Three operators have reported recurring back pain from repeatedly lifting heavy steel coils manually at the packing station.",
+    "l": "FA – Färdigstållning",
+    "ty": "Risk observation"
+  }
+]

@@ -38,10 +38,10 @@ Replace the dumb search with AI semantic matching that:
 Set in system environment or `.env` file:
 
 ```
-ANTHROPIC_API_KEY=your-openrouter-key
-ANTHROPIC_BASE_URL=https://openrouter.ai/api
-ANTHROPIC_MODEL=google/gemini-2.5-pro-preview
-ANTHROPIC_SMALL_FAST_MODEL=google/gemini-2.5-flash
+##ANTHROPIC_API_KEY=your-openrouter-key
+##ANTHROPIC_BASE_URL=https://openrouter.ai/api
+##ANTHROPIC_MODEL=google/gemini-2.5-pro-preview
+##ANTHROPIC_SMALL_FAST_MODEL=google/gemini-2.5-flash
 ```
 
 ## Data
