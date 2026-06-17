@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SafeMatch — Ovako AI Safety Advisor</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
+<link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+
+<div class="page">
+  <div class="brand">
+    <i class="ti ti-shield-check" style="font-size:22px;color:var(--blue)"></i>
+    <span class="logo">Safe<span>Match</span></span>
+    <span class="poc-tag">OVAKO PoC</span>
+  </div>
+  <p class="tagline">AI-powered corrective action advisor — surfaces what worked before, ranked by Hierarchy of Controls.</p>
+
+  <!-- Hierarchy Legend -->
+  <div class="legend">
+    <span style="font-size:11px;font-weight:500;color:var(--txt2);margin-right:4px">Controls:</span>
+    <span class="hl-badge hl1"><i class="ti ti-ban" style="font-size:12px"></i> 1 Elimination</span>
+    <span class="hl-badge hl2"><i class="ti ti-switch-2" style="font-size:12px"></i> 2 Substitution</span>
+    <span class="hl-badge hl3"><i class="ti ti-shield" style="font-size:12px"></i> 3 Engineering</span>
+    <span class="hl-badge hl4"><i class="ti ti-clipboard-list" style="font-size:12px"></i> 4 Administrative</span>
+    <span class="hl-badge hl5"><i class="ti ti-hard-hat" style="font-size:12px"></i> 5 PPE</span>
+  </div>
+
+  <!-- Quick fill -->
+  <div class="chip-lbl">Try a sample incident</div>
+  <div class="chip-row" id="chipRow"></div>
+
+  <!-- Input card -->
+  <div class="card">
+    <label class="lbl">Incident description</label>
+    <textarea id="incDesc" rows="3" placeholder="Describe the incident or risk observation as the manager or safety representative would write it..."></textarea>
+    <div class="row2">
+      <div class="fg">
+        <label class="lbl">Location / unit</label>
+        <select id="locSel">
+          <option value="">Any location</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="lbl">Incident type</label>
+        <select id="typSel">
+          <option value="">Any type</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-primary" id="analyzeBtn" onclick="analyze()">
+      <i class="ti ti-search"></i> Find similar cases &amp; recommend action
+    </button>
+  </div>
+
+  <!-- Pipeline -->
+  <div id="pipelineBox" class="hidden">
+    <div class="pipeline">
+      <div class="step"><span class="step-num s-wait" id="n1">1</span><span class="step-label">Extract key concepts from incident</span><span class="step-detail" id="d1"></span></div>
+      <div class="step"><span class="step-num s-wait" id="n2">2</span><span class="step-label">Search historical incident database</span><span class="step-detail" id="d2"></span></div>
+      <div class="step"><span class="step-num s-wait" id="n3">3</span><span class="step-label">Rank candidates by Hierarchy of Controls</span><span class="step-detail" id="d3"></span></div>
+      <div class="step"><span class="step-num s-wait" id="n4">4</span><span class="step-label">Generate corrective action recommendation</span><span class="step-detail" id="d4"></span></div>
+    </div>
+  </div>
+
+  <div id="errorBox" class="hidden"></div>
+  <div id="resultsBox"></div>
+</div>
+
+<script src="js/safematch.js"></script>
+</body>
+</html>
