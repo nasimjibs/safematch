@@ -99,6 +99,40 @@ function scoreRecord(record, tokens) {
   return tokens.reduce((n, t) => n + (blob.includes(t) ? 1 : 0), 0);
 }
 
+// ── Pure JS RAG fallback — no AI needed ──────────────────────────────────────
+function buildFallbackResult(tokens, candidates) {
+  const sorted = [...candidates].sort((a, b) => b.score - a.score || a.hl - b.hl);
+  const top5 = sorted.slice(0, 5);
+  const best = top5[0] || {};
+  const effective = best.rec === false || best.rec === 'false';
+
+  return {
+    _fallback: true,
+    topCases: top5.map((r, i) => ({
+      id: r.id,
+      rank: i + 1,
+      similarity_reason: `Matched ${r.score} keyword${r.score !== 1 ? 's' : ''} from your description`,
+      hierarchy_level: r.hl,
+      hierarchy_label: r.hlab,
+      recurred: r.rec,
+      site: r.site
+    })),
+    recommendation: {
+      action: best.act || 'Review the incident and implement an appropriate corrective action.',
+      hierarchy_level: best.hl || 4,
+      hierarchy_label: best.hlab || 'Administrative',
+      reasoning: `Top keyword match from ${top5.length} similar historical cases. ${effective ? 'This action was effective — incident did not recur.' : 'Monitor carefully — this action was followed by recurrence.'}`,
+      implementation_steps: [
+        'Review the incident thoroughly with all involved parties',
+        'Implement the corrective action listed above',
+        'Assign a responsible owner and set a clear deadline',
+        'Monitor effectiveness over the next 30 days',
+        'Document the outcome in the safety management system'
+      ]
+    }
+  };
+}
+
 // ── Pipeline step UI helpers ──────────────────────────────────────────────────
 function setStep(n, state, detail) {
   const num = document.getElementById('n' + n);
@@ -176,7 +210,6 @@ Return ONLY a JSON array of strings (no markdown, no preamble):
 async function analyze() {
   const desc = document.getElementById('incDesc').value.trim();
   if (!desc) { document.getElementById('incDesc').focus(); return; }
-  if (!API_KEY) { alert('Please enter your OpenRouter API key at the top of the page.'); return; }
 
   const btn = document.getElementById('analyzeBtn');
   btn.disabled = true;
@@ -206,10 +239,13 @@ async function analyze() {
     const candidates = scored.slice(0, 15);
     setStep(2, 'done', `${candidates.length} candidate cases retrieved from ${allRecords.length} records`);
 
-    // ── STEP 3: Send candidates to Claude for ranking ────────────────────────
-    setStep(3, 'run');
+    let result;
 
-    const prompt = `You are a workplace safety expert with deep knowledge of the Hierarchy of Controls:
+    if (API_KEY) {
+      // ── STEP 3: Send candidates to Claude for ranking ──────────────────────
+      setStep(3, 'run');
+
+      const prompt = `You are a workplace safety expert with deep knowledge of the Hierarchy of Controls:
 Level 1 = Elimination (remove the hazard), Level 2 = Substitution, Level 3 = Engineering controls,
 Level 4 = Administrative controls, Level 5 = PPE (last resort).
 
@@ -252,20 +288,32 @@ Rules:
 - Prioritise cases where recurred=false — these are proven effective actions
 - recommendation: choose the highest feasible hierarchy level based on available evidence`;
 
-    const raw = await callOpenRouterAPI(prompt);
-    let result;
-    try {
-      result = JSON.parse(raw.replace(/```json|```/g, '').trim());
-    } catch (e) {
-      throw new Error('Could not parse AI response. Please try again.');
+      const raw = await callOpenRouterAPI(prompt);
+      try {
+        result = JSON.parse(raw.replace(/```json|```/g, '').trim());
+      } catch (e) {
+        throw new Error('Could not parse AI response. Please try again.');
+      }
+      setStep(3, 'done', `5 cases ranked by Hierarchy of Controls`);
+
+      // ── STEP 4: Render results ─────────────────────────────────────────────
+      setStep(4, 'run');
+      await sleep(300);
+      setStep(4, 'done', 'Recommendation ready');
+
+    } else {
+      // ── STEP 3: Pure JS keyword ranking (no AI) ────────────────────────────
+      setStep(3, 'run');
+      await sleep(300);
+      result = buildFallbackResult(tokens, candidates);
+      setStep(3, 'done', `5 cases ranked by keyword score + hierarchy level <span style="color:var(--amber-tx)">(offline — no AI)</span>`);
+
+      // ── STEP 4: Render results ─────────────────────────────────────────────
+      setStep(4, 'run');
+      await sleep(200);
+      setStep(4, 'done', `Best-match recommendation ready <span style="color:var(--amber-tx)">(offline)</span>`);
     }
 
-    setStep(3, 'done', `5 cases ranked by Hierarchy of Controls`);
-
-    // ── STEP 4: Render results ───────────────────────────────────────────────
-    setStep(4, 'run');
-    await sleep(300);
-    setStep(4, 'done', 'Recommendation ready');
     _currentCtx = {
       desc: desc,
       loc:  document.getElementById('locSel').value,
@@ -294,11 +342,45 @@ function renderResults(result, candidates) {
     return { ...full, ...tc };
   });
 
+  const fallbackBanner = result._fallback ? `
+    <div style="background:var(--amber-bg);color:var(--amber-tx);border:0.5px solid rgba(99,56,6,0.25);border-radius:var(--radius);padding:9px 12px;font-size:12px;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+      <i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0"></i>
+      <span><strong>Offline mode</strong> — ranked by keyword matching only. Add an API key above for AI-powered semantic ranking.</span>
+    </div>` : '';
+
   box.innerHTML = `
+    ${fallbackBanner}
+    <!-- Recommendation card -->
+    <div class="rec-card">
+      <div class="rec-hdr">
+        <i class="ti ${result._fallback ? 'ti-database' : 'ti-sparkles'}" style="font-size:16px;color:var(--green-tx)"></i>
+        <span class="rec-title">${result._fallback ? 'Best-match corrective action' : 'Recommended corrective action'}</span>
+        ${hlBadge(rec.hierarchy_level, rec.hierarchy_label)}
+      </div>
+      <div class="rec-action">${rec.action}</div>
+      <div class="rec-reason">${rec.reasoning}</div>
+      <div class="divider"></div>
+      <div style="font-size:12px;font-weight:500;color:#3B6D11;margin-bottom:6px">Implementation steps</div>
+      <ul class="steps-list">
+        ${(rec.implementation_steps || []).map(s => `<li>${s}</li>`).join('')}
+      </ul>
+      <div class="suggestion-buttons">
+        <button class="btn-suggestion" id="editSuggestionBtn" onclick="editSuggestion()">
+          <i class="ti ti-edit"></i> Edit suggestion
+        </button>
+        <button class="btn-suggestion" id="chooseSuggestionBtn" onclick="chooseSuggestion()">
+          <i class="ti ti-check"></i> Choose this action
+        </button>
+        <button class="btn-action-taken" id="actionTakenBtn" style="display:none" onclick="markActionTaken()">
+          <i class="ti ti-circle-check"></i> Mark action taken
+        </button>
+      </div>
+    </div>
+
     <!-- Similar cases -->
     <div class="section-title">
       <i class="ti ti-history" style="font-size:16px;color:var(--txt2)"></i>
-      Similar historical cases — ranked by Hierarchy of Controls
+      Similar historical cases — ranked by ${result._fallback ? 'keyword score + hierarchy level' : 'Hierarchy of Controls'}
     </div>
     ${cases.map((c, i) => `
       <div class="case-card ${i === 0 ? 'best' : ''}">
